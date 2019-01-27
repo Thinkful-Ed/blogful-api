@@ -210,4 +210,83 @@ describe('Articles Endpoints', function() {
       })
     })
   })
+
+  describe(`PATCH /api/articles/:article_id`, () => {
+    context(`Given no articles`, () => {
+      it(`responds with 404`, () => {
+        const articleId = 123456
+        return supertest(app)
+          .delete(`/api/articles/${articleId}`)
+          .expect(404, { error: { message: `Article doesn't exist` } })
+      })
+    })
+
+    context('Given there are articles in the database', () => {
+      const testArticles = makeArticlesArray()
+
+      beforeEach('insert articles', () => {
+        return db
+          .into('blogful_articles')
+          .insert(testArticles)
+      })
+
+      it('responds with 204 and updates the article', () => {
+        const idToUpdate = 2
+        const updateArticle = {
+          title: 'updated article title',
+          style: 'Interview',
+          content: 'updated article content',
+        }
+        const expectedArticle = {
+          ...testArticles[idToUpdate - 1],
+          ...updateArticle
+        }
+        return supertest(app)
+          .patch(`/api/articles/${idToUpdate}`)
+          .send(updateArticle)
+          .expect(204)
+          .then(res =>
+            supertest(app)
+              .get(`/api/articles/${idToUpdate}`)
+              .expect(expectedArticle)
+          )
+      })
+
+      it(`responds with 400 when no required fields supplied`, () => {
+        const idToUpdate = 2
+        return supertest(app)
+          .patch(`/api/articles/${idToUpdate}`)
+          .send({ irrelevantField: 'foo' })
+          .expect(400, {
+            error: {
+              message: `Request body must content either 'title', 'style' or 'content'`
+            }
+          })
+      })
+
+      it(`responds with 204 when updating only a subset of fields`, () => {
+        const idToUpdate = 2
+        const updateArticle = {
+          title: 'updated article title',
+        }
+        const expectedArticle = {
+          ...testArticles[idToUpdate - 1],
+          ...updateArticle
+        }
+
+        return supertest(app)
+          .patch(`/api/articles/${idToUpdate}`)
+          .send({
+            ...updateArticle,
+            fieldToIgnore: 'should not be in GET response'
+          })
+          .expect(204)
+          .then(res =>
+            supertest(app)
+              .get(`/api/articles/${idToUpdate}`)
+              .expect(expectedArticle)
+          )
+      })
+    })
+  })
 })
