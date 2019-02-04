@@ -41,7 +41,6 @@ articlesRouter
       .then(article => {
         res
           .status(201)
-          .location(req.originalUrl + `/${article.id}`)
           .location(path.posix.join(req.originalUrl, `/${article.id}`))
           .json(serializeArticle(article))
       })
@@ -82,7 +81,7 @@ articlesRouter
   .patch(jsonParser, (req, res, next) => {
     const { title, content, style } = req.body
     const articleToUpdate = { title, content, style }
-    
+
     const numberOfValues = Object.values(articleToUpdate).filter(Boolean).length
     if (numberOfValues === 0)
       return res.status(400).json({
